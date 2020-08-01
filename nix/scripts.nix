@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> { }, hdf5 ? pkgs.hdf5, mpi ? pkgs.openmpi, zlib ? pkgs.zlib }:
 
-rec {
+{
   base-env-vars = pkgs.writeText "base-env-vars" ''
     # Keep track of project directory
     export PROJECT_DIR=$(pwd)
@@ -14,7 +14,7 @@ rec {
     export LD_LIBRARY_PATH=${pkgs.zlib}/lib:$LD_LIBRARY_PATH
   '';
 
-  dask-local-env-vars = pkgs.writeText "dask-env-vars" ''
+  dask-env-vars = pkgs.writeText "dask-env-vars" ''
     export DASK_DASHBOARD_ADDRESS=''${DASK_DASHBOARD_ADDRESS-8787}
     export DASK_SCHEDULER_HOST=''${DASK_SCHEDULER_HOST-localhost}
     export DASK_SCHEDULER_PORT=''${DASK_SCHEDULER_PORT-8786}
@@ -24,24 +24,63 @@ rec {
     export DASK_SCHEDULER_URL=tcp://$DASK_SCHEDULER_HOST:$DASK_SCHEDULER_PORT 
   ''; 
 
-  dask-local = pkgs.writeScriptBin "dask-local" ''
+  notebook-env-vars = pkgs.writeText "notebook-env-vars" ''
+    export JUPYTERLAB_PORT=''${JUPYTERLAB_PORT-8888}
+  ''; 
+
+  run-dask-scheduler = pkgs.writeScriptBin "run-dask-scheduler" ''
     #!/usr/bin/env sh
 
-    dask-scheduler --host=localhost --port=$DASK_SCHEDULER_PORT &
-    export DASK_SCHEDULER_PID=$!
-
-    mpirun -np $DASK_NUM_MPI_SLOTS dask-worker $DASK_SCHEDULER_URL --nthreads=$DASK_NUM_THREADS_PER_WORKER --dashboard-address=$DASK_DASHBOARD_ADDRESS &
-    export DASK_WORKER_PID=$!
-
-    trap "kill $DASK_SCHEDULER_PID $DASK_WORKER_PID" EXIT
-
-    tail -f /dev/null
+    dask-scheduler --host=localhost --port=$DASK_SCHEDULER_PORT
   '';
 
-  notebook = pkgs.writeScriptBin "notebook" ''
+  run-dask-worker = pkgs.writeScriptBin "run-dask-worker" ''
     #!/usr/bin/env sh
 
-    jupyter lab
+    dask-worker $DASK_SCHEDULER_URL --nthreads=$DASK_NUM_THREADS_PER_WORKER --dashboard-address=$DASK_DASHBOARD_ADDRESS '';
+
+  run-notebook = pkgs.writeScriptBin "run-notebook" ''
+    #!/usr/bin/env sh
+
+    jupyter lab --port $JUPYTERLAB_PORT
+  '';
+
+  start-local-servers = pkgs.writeScriptBin "start-local-servers" ''
+    #!/usr/bin/env python
+
+    import os
+    import subprocess
+    import atexit
+    import mpi4py
+
+    comm = MPI.COMM_WORLD
+
+    num_dask_worker_slots = int(os.getenv('DASK_NUM_MPI_SLOTS'))
+
+    commands = [
+      { "cmd": "run-dask-scheduler &> ./.logs/dask_scheduler.log", "copies": 1 },
+      { "cmd": "run-dask-worker &> ./.logs/dask_workers.log", "copies": num_dask_worker_slots },
+      { "cmd": "run-notebook &> ./.logs/notebook.log", "copies": 1 },
+    ]
+    
+    def eval_process_spec(spec):
+      processes = []
+
+      if not os.path.exists('./.logs'):
+          os.makedirs('./.logs')
+
+      return subprocess.Popen([spec.get("cmd", "echo")]);
+
+    processes = eval_process_spec(commands)
+
+    def cleanup():
+      for p in processes:
+        p.kill();
+        
+    atexit.register(cleanup)
+
+    for p in processes:
+      p.wait();
   '';
 
   install-h5py-mpi = pkgs.writeScriptBin "install-h5py-mpi" ''
@@ -61,10 +100,7 @@ rec {
     export CPATH="${hdf5.dev}/include:$CPATH"
     export CPATH="$(pwd)/lzf:$CPATH"
 
-    # Uncomment to print C include paths
-    # echo | gcc -E -Wp,-v -
-
-    pythom -m pip install .
+    python -m pip install .
     popd
     popd
   '';
@@ -76,6 +112,8 @@ rec {
   '';
 
   check-cuda = pkgs.writeScriptBin "check-cuda" ''
-    ${mpi}/bin/mpirun -np 1 python -c 'import torch; print(torch.cuda.is_available())'
+    #!/usr/bin/env sh
+
+    python -c 'import torch; print(torch.cuda.is_available())'
   '';
 }

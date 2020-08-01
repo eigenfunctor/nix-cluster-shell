@@ -13,7 +13,7 @@ let
 
   hdf5 = hdf5Drv.override { inherit stdenv fetchurl removeReferencesTo mpi zlib; };
 
-  scripts = import ./scripts.nix { inherit pkgs hdf5 mpi zlib; };
+  scripts = import ./nix/scripts.nix { inherit pkgs hdf5 mpi zlib; };
 
   scriptsList = (map (key: getAttr key scripts) (attrNames scripts));
 
@@ -34,14 +34,17 @@ stdenv.mkDerivation (
     ] ++ scriptsList ++ buildInputs;
 
     shellHook = ''
+      unset name
+
       source ${scripts.base-env-vars}
 
       # Python virtual environment setup
+      echo 'Initializing python virtual environment...'
       [ ! -d $(pwd)/.venv ] && ${python38}/bin/python -m venv $(pwd)/.venv && mkdir $(pwd)/.venv/repos
       source $(pwd)/.venv/bin/activate
       python -m pip install --quiet -U pip
-      export TEMPDIR=$(pwd)/.pip-temp
-      export PIP_CACHE_DIR=$TEMP_DIR
+      [ -z TEMPDIR ] && export TEMPDIR=$(pwd)/.pip-temp
+      [ -z PIP_CACHE_DIR ] && export PIP_CACHE_DIR=$TEMP_DIR
       [ -f requirements.txt ] && python -m pip install --quiet -r requirements.txt
 
       # Build h5py with mpi
@@ -51,7 +54,9 @@ stdenv.mkDerivation (
       echo "Checking if CUDA is available:"
       ${scripts.check-cuda}/bin/check-cuda
 
-      source ${scripts.dask-local-env-vars}
+      source ${scripts.dask-env-vars}
+
+      source ${scripts.notebook-env-vars}
 
       ${shellHook}
     '';

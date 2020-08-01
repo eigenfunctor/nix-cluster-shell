@@ -1,0 +1,8 @@
+.global_node_modules/
+.ipynb_checkpoints/
+.logs/
+.pip-temp/
+.pytest_cache/
+.venv/
+dask-worker-space/
+data/
