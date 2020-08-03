@@ -54,10 +54,6 @@ stdenv.mkDerivation (
       echo "Checking if CUDA is available:"
       ${scripts.check-cuda}/bin/check-cuda
 
-      source ${scripts.dask-env-vars}
-
-      source ${scripts.notebook-env-vars}
-
       ${shellHook}
     '';
   }
