@@ -31,7 +31,7 @@ stdenv.mkDerivation (
       nodejs
       python38
       zlib
-    ] ++ scriptsList ++ buildInputs;
+    ] ++ buildInputs;
 
     shellHook = ''
       unset name
@@ -39,13 +39,13 @@ stdenv.mkDerivation (
       source ${scripts.base-env-vars}
 
       # Python virtual environment setup
-      echo 'Initializing python virtual environment...'
+      echo 'Initializing python virtual environment (this may take a while)...'
       [ ! -d $(pwd)/.venv ] && ${python38}/bin/python -m venv $(pwd)/.venv && mkdir $(pwd)/.venv/repos
       source $(pwd)/.venv/bin/activate
       python -m pip install --quiet -U pip
       [ -z TEMPDIR ] && export TEMPDIR=$(pwd)/.pip-temp
       [ -z PIP_CACHE_DIR ] && export PIP_CACHE_DIR=$TEMP_DIR
-      [ -f requirements.txt ] && python -m pip install --quiet -r requirements.txt
+      python -m pip install --quiet -r ${scripts.base-pip-requirements}
 
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi

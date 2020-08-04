@@ -31,7 +31,7 @@
     export CPATH="${hdf5.dev}/include:$CPATH"
     export CPATH="$(pwd)/lzf:$CPATH"
 
-    python -m pip install .
+    python -m pip install --no-binary :all: .
     popd
     popd
   '';
@@ -39,8 +39,13 @@
   pip-freeze = pkgs.writeScriptBin "pip-freeze" ''
     #!/usr/bin/env sh
 
-    python -m pip freeze | grep -v h5py > $PROJECT_DIR/requirements.txt
+    python -m pip freeze | grep -v h5py
   '';
+
+  base-pip-requirements = pkgs.writeTextFile {
+    name = "requirements.txt";
+    text = (builtins.readFile ./requirements.txt);
+  };
 
   check-cuda = pkgs.writeScriptBin "check-cuda" ''
     #!/usr/bin/env sh
