@@ -50,6 +50,13 @@ stdenv.mkDerivation (
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi
 
+      # Setup npm prefix and install pm3
+      export GLOBAL_NODE_MODULES_PATH=$(pwd)/.venv/global-node-modules
+      [ ! -d $GLOBAL_NODE_MODULES_PATH ] && mkdir $GLOBAL_NODE_MODULES_PATH
+      npm config set prefix $GLOBAL_NODE_MODULES_PATH
+      export PATH=$PATH:$GLOBAL_NODE_MODULES_PATH/bin
+      [ -z $(which pm2) ] && npm install --global pm2
+
       # Display if Cuda can be used from mpi
       echo "Checking if CUDA is available:"
       ${scripts.check-cuda}/bin/check-cuda
