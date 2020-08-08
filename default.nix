@@ -13,6 +13,8 @@ let
 
   hdf5 = hdf5Drv.override { inherit stdenv fetchurl removeReferencesTo mpi zlib; };
 
+  files = import ./nix/files.nix { inherit pkgs hdf5 mpi zlib; };
+
   scripts = import ./nix/scripts.nix { inherit pkgs hdf5 mpi zlib; };
 
   scriptsList = (map (key: getAttr key scripts) (attrNames scripts));
@@ -31,12 +33,12 @@ stdenv.mkDerivation (
       nodejs
       python38
       zlib
-    ] ++ buildInputs;
+    ] ++ scriptsList ++ buildInputs ;
 
     shellHook = ''
       unset name
 
-      source ${scripts.base-env-vars}
+      source ${files.base-env-vars}
 
       # Python virtual environment setup
       echo 'Initializing python virtual environment (this may take a while)...'
@@ -45,7 +47,7 @@ stdenv.mkDerivation (
       python -m pip install --quiet -U pip
       [ -z TEMPDIR ] && export TEMPDIR=$(pwd)/.pip-temp
       [ -z PIP_CACHE_DIR ] && export PIP_CACHE_DIR=$TEMP_DIR
-      python -m pip install --quiet -r ${scripts.base-pip-requirements}
+      python -m pip install --quiet -r ${files.base-pip-requirements}
 
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi
