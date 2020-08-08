@@ -21,11 +21,19 @@ let
 
 in 
 
-args@{ name, buildInputs ? [], shellHook ? "", ... }: 
+args@{
+  name,
+  requirements ? null,
+  buildInputs ? [],
+  shellHook ? "",
+  ...
+}:
 
 stdenv.mkDerivation (
   args // {
     inherit name;
+
+    requirements = null;
 
     buildInputs = [
       hdf5
@@ -48,6 +56,8 @@ stdenv.mkDerivation (
       [ -z TEMPDIR ] && export TEMPDIR=$(pwd)/.pip-temp
       [ -z PIP_CACHE_DIR ] && export PIP_CACHE_DIR=$TEMP_DIR
       python -m pip install --quiet -r ${files.base-pip-requirements}
+      # Install shell user's locally defined pip requirements list
+      ${lib.strings.optionalString (requirements != null) "python -m pip install --quiet -r ${requirements}"}
 
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi
