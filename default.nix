@@ -17,14 +17,19 @@ let
 
   scripts = import ./nix/scripts.nix { inherit pkgs hdf5 mpi zlib; };
 
+  helpers = import ./nix/helpers.nix { inherit pkgs; };
+
   scriptsList = (map (key: getAttr key scripts) (attrNames scripts));
 
 in 
 
 args@{
   name,
+  lib,
   requirements ? null,
   buildInputs ? [],
+  pythonModules ? [],
+  installPhase ? "",
   shellHook ? "",
   ...
 }:
@@ -33,16 +38,25 @@ stdenv.mkDerivation (
   args // {
     inherit name;
 
-    requirements = null;
-
     buildInputs = [
-      go
       hdf5
       mpi
       nodejs
       python38
       zlib
     ] ++ scriptsList ++ buildInputs ;
+
+    src = lib;
+
+    phases = "installPhase";
+
+    installPhase = ''
+      mkdir $out;
+
+      cp -r $src/* $out/
+
+      ${installPhase}
+    '';
 
     shellHook = ''
       unset name
@@ -58,10 +72,13 @@ stdenv.mkDerivation (
       [ -z PIP_CACHE_DIR ] && export PIP_CACHE_DIR=$TEMP_DIR
       python -m pip install --quiet -r ${files.base-pip-requirements}
       # Install shell user's locally defined pip requirements list
-      ${lib.strings.optionalString (requirements != null) "python -m pip install --quiet -r ${requirements}"}
+      ${if (requirements != null) then "python -m pip install --quiet -r ${requirements}" else ""}
 
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi
+
+
+      ${helpers.install-python-modules pythonModules}
 
       # Setup npm prefix and install pm3
       export GLOBAL_NODE_MODULES_PATH=$(pwd)/.venv/global-node-modules
@@ -76,5 +93,7 @@ stdenv.mkDerivation (
 
       ${shellHook}
     '';
+
+    requirements = null;
   }
 )
