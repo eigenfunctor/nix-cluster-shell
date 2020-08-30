@@ -36,6 +36,7 @@ stdenv.mkDerivation (
     requirements = null;
 
     buildInputs = [
+      go
       hdf5
       mpi
       nodejs
