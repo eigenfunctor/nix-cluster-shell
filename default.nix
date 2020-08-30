@@ -25,7 +25,7 @@ in
 
 args@{
   name,
-  lib,
+  lib ? ./lib,
   requirements ? null,
   buildInputs ? [],
   pythonModules ? [],
