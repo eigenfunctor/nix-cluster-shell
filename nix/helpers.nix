@@ -13,9 +13,14 @@ with pkgs.lib;
       install-python-module =
         (pythonModule: ''
 
-          [ ! -d $(pwd)/.venv/repos/$(basename ${pythonModule}) ] && cp -r ${pythonModule} $(pwd)/.venv/repos/
+          REPO_PATH=$(pwd)/.venv/repos/$(basename ${pythonModule})
 
-          export PYTHONPATH=$PYTHONPATH:$(pwd)/.venv/repos/$(basename ${pythonModule})
+          if [ ! -d $REPO_PATH ]; then
+            cp -r ${pythonModule} $REPO_PATH
+            chmod -R gu+rw $REPO_PATH
+          fi
+
+          export PYTHONPATH=$PYTHONPATH:$REPO_PATH
 
         '');
     in 
