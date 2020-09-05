@@ -3,7 +3,10 @@
 {
   install-h5py-mpi =
     let
-      h5py-repo = builtins.fetchGit { url = "https://github.com/h5py/h5py"; };
+      h5py-repo = builtins.fetchGit {
+        url = "https://github.com/h5py/h5py";
+        rev = "f525d1c180f6b4bc59726faf833fd50a26d57d83";
+      };
     in pkgs.writeScriptBin "install-h5py-mpi" ''
       #!/usr/bin/env sh
 
