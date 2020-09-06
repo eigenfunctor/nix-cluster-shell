@@ -77,7 +77,7 @@ stdenv.mkDerivation (
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi
 
-      export PYTHON_PATH=$PYTHON_PATH:${builtins.toString lib}
+      export PYTHONPATH=$PYTHONPATH:${builtins.toString lib}
       ${helpers.install-python-modules pythonModules}
 
       # Setup npm prefix and install pm3
