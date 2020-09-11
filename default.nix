@@ -25,7 +25,7 @@ in
 
 args@{
   name,
-  lib ? ./lib,
+  lib ? null,
   requirements ? null,
   buildInputs ? [],
   pythonModules ? [],
@@ -72,12 +72,13 @@ stdenv.mkDerivation (
       [ -z PIP_CACHE_DIR ] && export PIP_CACHE_DIR=$TEMP_DIR
       python -m pip install --quiet -r ${files.base-pip-requirements}
       # Install shell user's locally defined pip requirements list
-      ${if (requirements != null) then "python -m pip install --quiet -r ${requirements}" else ""}
+      ${if (requirements != null) then "python -m pip install --quiet -r ${requirements}" else "# no-op"}
 
       # Build h5py with mpi
       ${scripts.install-h5py-mpi}/bin/install-h5py-mpi
 
-      export PYTHONPATH=$PYTHONPATH:${builtins.toString lib}
+      # Install project python modules and dependencies
+      ${if lib != null then "export PYTHONPATH=$PYTHONPATH:${builtins.toString lib}" else "# no-op"}
       ${helpers.install-python-modules pythonModules}
 
       # Setup npm prefix and install pm3
