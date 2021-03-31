@@ -1,7 +1,7 @@
-{ pkgs ? import <nixpkgs> { } }:
+{ lib }:
 
 with builtins;
-with pkgs.lib;
+with lib;
 
 {
   # Returns shell command string for taking a list of

@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> { }, hdf5 ? pkgs.hdf5, mpi ? pkgs.openmpi, zlib ? pkgs.zlib }:
+{ pkgs ? import <nixpkgs> { }, python, hdf5, mpi, zlib, cudatoolkit, cudnn, magma }:
 
 {
   base-env-vars = pkgs.writeText "base-env-vars" ''
@@ -12,6 +12,9 @@
     export LD_LIBRARY_PATH=${pkgs.python38}/lib:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=${pkgs.zlib}/lib:$LD_LIBRARY_PATH
+
+    # CUDA and magma path
+    export LD_LIBRARY_PATH="${cudatoolkit}/lib:${cudnn}/lib:${magma}/lib:$LD_LIBRARY_PATH"
   '';
 
   base-pip-requirements = pkgs.writeTextFile {
